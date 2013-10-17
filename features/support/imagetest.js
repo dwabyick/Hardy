@@ -12,7 +12,7 @@ var webdriver;
 var exitStatus;
 var platform = require('os').platform();
 var _processRoot = process.cwd();
-var im = require("imagemagick");
+var gm = require("gm");
 
 exports.screenshot = screenshot;
 exports.compare = compare;
@@ -79,35 +79,18 @@ function captureSelector(filename, selector, callback) {
                         return callback(err, tempFile);
                     }
 
-                    // Spawn a separate process to crop the image to the size and position of the element
-
-
-
-                    // use imagemagick for our crop
-                    var cropArgs = size.width + "x" + size.height + "+" + where.x + "+" + where.y;
-                    im.convert([tempFile, '-crop', cropArgs, filename],
-                        function(err, stdout) {
-
-                            if (err) {
-                                callback(new Error(code));
-                            } else {
+                    // Fifth, crop the image to the object's bounds and save it.
+                    gm(tempFile)
+                        .crop(size.width, size.height, where.x, where.y)
+                        .write(tempFile, function(err) {
+                            if (!err) {
                                 callback(null, {status: /\.diff\./.test(filename)?'success':'firstrun', value: filename});
                             }
-
-
+                            else
+                            {
+                                callback(new Error(code));
+                            }
                         });
-
-                   // console.log(_processRoot + '/lib/GhostKnife/ghostknife', [tempFile, where.x, where.y, size.width, size.height, 3000, 10000, filename]);
-                   /* var spawn = require('child_process').spawn,
-                    imgcrp = spawn(_processRoot + '/lib/GhostKnife/ghostknife', [tempFile, where.x, where.y, size.width, size.height, 3000, 10000, filename]);
-                    imgcrp.on('exit', function(code) {
-                        if (code === 0) {
-                            callback(null, {status: /\.diff\./.test(filename)?'success':'firstrun', value: filename});
-                        } else {
-                            callback(new Error(code));
-                        }
-                    });*/
-
                 });
             });
         });
@@ -122,14 +105,23 @@ function compare(filename, callback) {
     if (!fs.existsSync(baseFile)) {
         return callback(new Error(baseFile + " does not exist"));
     } else {
-        // But instead, we have to spawn the global imagediff because the node one is acting weird
-        var spawn = require('child_process').spawn,
-            imgdf = spawn(_processRoot + '/lib/GhostDiff/ghostdiff', [filename, baseFile]);
-        imgdf.on('exit', function(code) {
-            if (code === 0) {
+
+
+        var tolerance = 0.0;  // this means exactly equal
+        gm.compare(filename, baseFile, tolerance, function (err, isEqual, equality, raw) {
+            if (err) {
+                // how to handle a true error here?
+                console.log('error comparing images');
+                throw err;
+            }
+            console.log('The images are equal: %s', isEqual);
+            console.log('Actual equality: %d', equality)
+            //console.log('Raw output was: %j', raw);
+            if (isEqual) {
                 callback();
-            } else {
-                callback.fail(new Error("Images don't match: " + filename));
+            }
+            else {
+                callback.fail(new Error("Images don't match: " + filename, baseFile));
             }
         });
     }
