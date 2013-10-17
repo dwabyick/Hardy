@@ -12,6 +12,7 @@ var webdriver;
 var exitStatus;
 var platform = require('os').platform();
 var _processRoot = process.cwd();
+var im = require("imagemagick");
 
 exports.screenshot = screenshot;
 exports.compare = compare;
@@ -79,8 +80,25 @@ function captureSelector(filename, selector, callback) {
                     }
 
                     // Spawn a separate process to crop the image to the size and position of the element
-                    // console.log(_processRoot + '/lib/GhostKnife/ghostknife', [tempFile, where.x, where.y, size.width, size.height, 3000, 10000, filename]);
-                    var spawn = require('child_process').spawn,
+
+
+
+                    // use imagemagick for our crop
+                    var cropArgs = size.width + "x" + size.height + "+" + where.x + "+" + where.y;
+                    im.convert([tempFile, '-crop', cropArgs, filename],
+                        function(err, stdout) {
+
+                            if (err) {
+                                callback(new Error(code));
+                            } else {
+                                callback(null, {status: /\.diff\./.test(filename)?'success':'firstrun', value: filename});
+                            }
+
+
+                        });
+
+                   // console.log(_processRoot + '/lib/GhostKnife/ghostknife', [tempFile, where.x, where.y, size.width, size.height, 3000, 10000, filename]);
+                   /* var spawn = require('child_process').spawn,
                     imgcrp = spawn(_processRoot + '/lib/GhostKnife/ghostknife', [tempFile, where.x, where.y, size.width, size.height, 3000, 10000, filename]);
                     imgcrp.on('exit', function(code) {
                         if (code === 0) {
@@ -88,7 +106,7 @@ function captureSelector(filename, selector, callback) {
                         } else {
                             callback(new Error(code));
                         }
-                    });
+                    });*/
 
                 });
             });
