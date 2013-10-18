@@ -1,8 +1,14 @@
 [Hardy](http://hardy.io/)
 ===
 
-(The Not-quite-ready-yet release)
+(The GraphicsMagick enabled fork)
 ---
+
+```
+# required prereq
+$ brew install graphicsmagick
+```
+
 
 _This is almost entirely working but not 100%. If you spot a problem, please [file an issue](https://github.com/thingsinjars/Hardy/issues)._
 
