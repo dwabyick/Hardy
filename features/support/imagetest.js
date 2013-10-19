@@ -52,6 +52,7 @@ function screenshot(selector, callback) {
 }
 
 function captureSelector(filename, selector, callback) {
+    //console.log('captureSelector', filename, selector);
     // First, grab the whole page
     webdriver.screenshot(function(err, result) {
         if(err) {
@@ -79,10 +80,11 @@ function captureSelector(filename, selector, callback) {
                         return callback(err, tempFile);
                     }
 
+                    //console.log('cropping: ', tempFile, size.width, size.height, where.x, where.y);
                     // Fifth, crop the image to the object's bounds and save it.
                     gm(tempFile)
                         .crop(size.width, size.height, where.x, where.y)
-                        .write(tempFile, function(err) {
+                        .write(filename, function(err) {
                             if (!err) {
                                 callback(null, {status: /\.diff\./.test(filename)?'success':'firstrun', value: filename});
                             }
@@ -104,18 +106,22 @@ function compare(filename, callback) {
 
     if (!fs.existsSync(baseFile)) {
         return callback(new Error(baseFile + " does not exist"));
-    } else {
+    }
+    else if (!fs.existsSync(filename)) {
+        return callback(new Error(filename + " does not exist"));
+    }
+    else {
 
-
+        //console.log( 'compare',filename,baseFile );
         var tolerance = 0.0;  // this means exactly equal
         gm.compare(filename, baseFile, tolerance, function (err, isEqual, equality, raw) {
             if (err) {
                 // how to handle a true error here?
-                console.log('error comparing images');
+                console.log('error comparing images', err);
                 throw err;
             }
-            console.log('The images are equal: %s', isEqual);
-            console.log('Actual equality: %d', equality)
+            //console.log('The images are equal: %s', isEqual);
+            //console.log('Actual equality: %d', equality)
             //console.log('Raw output was: %j', raw);
             if (isEqual) {
                 callback();
