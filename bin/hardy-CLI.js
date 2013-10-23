@@ -164,7 +164,7 @@ function hardyCLI() {
         var command, optionsArray = [], environment;
 
         // Output style of Cucumber
-        optionsArray.push("-f=progress");
+        optionsArray.push("-f=pretty");
 
         // Get Cucumber to load our CSS test helpers and world files first
         optionsArray.push("-r=" + hardyPath + 'features/');
@@ -193,6 +193,8 @@ function hardyCLI() {
         // Path to the local test folder
         optionsArray.push("--testPath=" + testPath);
 
+        optionsArray.push("--debug=40001");
+       // optionsArray.push("--debug-brk");
         // Where to find our *.feature files
         optionsArray.push(testPath);
 

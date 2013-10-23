@@ -127,7 +127,16 @@ function compare(filename, callback) {
                 callback();
             }
             else {
-                callback.fail(new Error("Images don't match: " + filename, baseFile));
+                // now, output the visually difference image using gm's somewhat-awkward API
+                var errorFile = filename.replace(".diff",".visdiff");
+                console.log('here: ',errorFile);
+                gm.compare( filename, baseFile, { file:errorFile }, function(err, isEqual, equality, raw) {
+                    if (err) {
+                        throw err;
+                    }
+                    console.log("Images don't match. Created visdiff file.", errorFile);
+                    callback.fail(new Error("Images don't match: " + filename, baseFile));
+                }  );
             }
         });
     }
