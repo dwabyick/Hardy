@@ -4,8 +4,11 @@ module.exports = function() {
     var imageTest = require('../support/imagetest'),
         utils = require('../support/css-utils'),
         assert = require('assert'),
-        selectors = require('../support/selectors.js');
-    var shouldHavePropertyOfValue, shouldHaveOffsetPropertyOfValue, shouldHavePropertyOfComparatorThanValue, shouldLookTheSameAsBefore;
+        selectors = require('../support/selectors.js'),
+        config = require('../support/config.js');
+    var shouldHavePropertyOfValue, shouldHavePropertyOfValueOrValue,
+        shouldHaveOffsetPropertyOfValue, shouldHavePropertyOfComparatorThanValue,
+        shouldLookTheSameAsBefore;
 
     /* "<Then> the <element> should have <property> of <value>" */
     // Map the given name to the selector then find that element in the page
@@ -178,19 +181,24 @@ module.exports = function() {
     /* Image Diff test */
     shouldLookTheSameAsBefore = function(elementName, callback) {
         var elementSelector = selectors(elementName);
+
         imageTest.init({
             screenshotRoot: process.env.TESTPATH + '/screenshots',
             processRoot: process.env.BINARYPATH,
-            webdriver: this
+            webdriver: this,
+            fileNameGetter: config('fileNameGetter') || false
         });
         imageTest.screenshot(elementSelector, function(err, result) {
             if (err) {
                 return callback.fail(err);
             }
             if (result.status === 'firstrun') {
-                return callback.fail(new Error("First time this test has been run. New test cases have been created."));
+                console.log("\n -- Notice: --");
+                console.log(" First time this test with selector named:'" + elementName + "' has been run and new test cases have been created");
+                return callback();
+            } else {
+                imageTest.compare(result.value, callback);
             }
-            imageTest.compare(result.value, callback);
         });
     };
     this.Then(/^"([^"]*)" should look the same as before$/, shouldLookTheSameAsBefore);

@@ -18,6 +18,7 @@ function hardyCLI() {
         numberOfRuns, currentRun,
         hardyPath = path.resolve(require.main.filename, '../..') + '/',
         testPath,
+        configFile = null,
         lockFile = hardyPath + '.seleniumlock';
 
 
@@ -44,6 +45,19 @@ function hardyCLI() {
                     printMessageAndExit('Directory initialised');
                 }
 
+            } else if (PROPERTIES.clean) {
+
+                // Check the screenshot directory exists. If it doesn't, there's nothing to clean
+                if (!fs.existsSync('screenshots/')) {
+                    printMessageAndExit('screenshot directory does not exist', 1);
+
+                } else {
+                    // Directory is there, let's remove everything in it
+                    cleanDirectory('screenshots');
+                    createScreenshotsFolder();
+                    printMessageAndExit('Directory initialised');
+                }
+
             } else {
                 // Not just initialising a new folder
 
@@ -58,10 +72,14 @@ function hardyCLI() {
         }
     }
 
-    function createTestFolder() {
-        fs.writeFileSync('test.feature', "Feature:");
+    function createScreenshotsFolder() {
         fs.mkdirSync('screenshots');
         fs.mkdirSync('screenshots/tmp');
+    }
+
+    function createTestFolder() {
+        fs.writeFileSync('test.feature', "Feature:");
+        createScreenshotsFolder();
         fs.mkdirSync('step_definitions');
         fs.writeFileSync('step_definitions/custom.js', "");
         fs.writeFileSync('selectors.js', "module.exports = {};");
@@ -71,7 +89,9 @@ function hardyCLI() {
     function controlNotRunningSelenium() {
         if (PROPERTIES.seleniumAction === 'start') {
             if (PROPERTIES.logLevel === 'debug') {
-                console.log('java', ['-jar', hardyPath + 'lib/selenium-server-standalone-2.32.0.jar'], {detached: true});
+                console.log('java', ['-jar', hardyPath + 'lib/selenium-server-standalone-2.32.0.jar'], {
+                    detached: true
+                });
             }
             var selenium = spawn('java', ['-jar', hardyPath + 'lib/selenium-server-standalone-2.32.0.jar'], {
                 detached: true
@@ -151,6 +171,11 @@ function hardyCLI() {
 
             testFolder = process.argv[process.argv.length - 1];
             testPath = path.resolve(testFolder);
+            
+            if (PROPERTIES.configFile && fs.existsSync(testPath + "/" + PROPERTIES.configFile)) {
+                configFile = testPath + "/" + PROPERTIES.configFile;
+            }
+
             browsersToTest = PROPERTIES.browser.split(',');
             numberOfRuns = browsersToTest.length;
             currentRun = 0;
@@ -161,10 +186,11 @@ function hardyCLI() {
     }
 
     function buildChildProcess(browser) {
-        var command, optionsArray = [], environment;
+        var command, optionsArray = [],
+            environment;
 
         // Output style of Cucumber
-        optionsArray.push("-f=pretty");
+        optionsArray.push("-f=progress");
 
         // Get Cucumber to load our CSS test helpers and world files first
         optionsArray.push("-r=" + hardyPath + 'features/');
@@ -193,16 +219,19 @@ function hardyCLI() {
         // Path to the local test folder
         optionsArray.push("--testPath=" + testPath);
 
-        optionsArray.push("--debug=40001");
-       // optionsArray.push("--debug-brk");
+        // Config file
+        if (configFile) {
+            optionsArray.push("--configFile=" + configFile);
+        }
+
         // Where to find our *.feature files
         optionsArray.push(testPath);
 
         command = hardyPath + 'node_modules/cucumber/bin/cucumber.js';
         environment = {
-                cwd: testPath,
-                stdio: 'inherit'
-            };
+            cwd: testPath,
+            stdio: 'inherit'
+        };
         if (PROPERTIES.logLevel === 'debug') {
             console.log(command, optionsArray, environment);
         }
@@ -263,6 +292,25 @@ function hardyCLI() {
                 process.exit(exitCode);
             }
         };
+    }
+
+    function cleanDirectory(dirPath) {
+        try {
+            var files = fs.readdirSync(dirPath);
+        } catch (e) {
+            return;
+        }
+        if (files.length > 0) {
+            for (var i = 0; i < files.length; i++) {
+                var filePath = dirPath + '/' + files[i];
+                if (fs.statSync(filePath).isFile()) {
+                    fs.unlinkSync(filePath);
+                } else {
+                    cleanDirectory(filePath);
+                }
+            }
+        }
+        fs.rmdirSync(dirPath);
     }
 
     return {
