@@ -13,6 +13,7 @@ var exitStatus;
 var platform = require('os').platform();
 var _processRoot = process.cwd();
 var gm = require("gm");
+var _failOnFirstMismatch = true;
 
 exports.screenshot = screenshot;
 exports.compare = compare;
@@ -22,7 +23,15 @@ function init(options) {
     webdriver = options.webdriver || {};
     _root = options.screenshotRoot || _root;
     _processRoot = options.processRoot || _processRoot;
-    _fileNameGetter = options.fileNameGetter || _fileNameGetter;
+    _fileNameGetter = _fileNameGetter;
+
+    if (options.fileNameGetter) {
+        _fileNameGetter = options.fileNameGetter.apply(this, [platform, webdriver, fs]);
+    }
+
+    _failOnFirstMismatch = typeof options.failOnFirstMismatch !== "undefined" ?
+                               options.failOnFirstMismatch :
+                               _failOnFirstMismatch;
 }
 
 function _fileNameGetter(_root, selector) {
@@ -126,18 +135,26 @@ function compare(filename, callback) {
             //console.log('Raw output was: %j', raw);
             if (isEqual) {
                 callback();
-            }
-            else {
-                // now, output the visually difference image using gm's somewhat-awkward API
-                var errorFile = filename.replace(".diff",".visdiff");
-                console.log('here: ',errorFile);
-                gm.compare( filename, baseFile, { file:errorFile }, function(err, isEqual, equality, raw) {
+            } else { 
+
+				 // now, output the visually difference image using gm's somewhat-awkward API
+                var visDiffFile = filename.replace(".diff",".visdiff");
+
+                gm.compare( filename, baseFile, { file: visDiffFile }, function(err, isEqual, equality, raw) {
+
                     if (err) {
-                        throw err;
+                        callback.fail("Error creating visual diff file: " + err);
                     }
-                    console.log("Images don't match. Created visdiff file.", errorFile);
-                    callback.fail(new Error("Images don't match: " + filename, baseFile));
-                }  );
+				
+                    //console.log("Images don't match. Created visdiff file.", errorFile);
+                    if (_failOnFirstMismatch) {
+                		callback.fail(new Error("Images don't match: " +  visDiffFile));
+            		} 
+					else {
+                		console.log("\tWARN: Images don't match: " +  visDiffFile + "\n");
+                		callback();
+                    }
+                });
             }
         });
     }

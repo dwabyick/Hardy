@@ -186,7 +186,8 @@ module.exports = function() {
             screenshotRoot: process.env.TESTPATH + '/screenshots',
             processRoot: process.env.BINARYPATH,
             webdriver: this,
-            fileNameGetter: config('fileNameGetter') || false
+            fileNameGetter: config('fileNameGetter') || false,
+            failOnFirstMismatch : config('failOnFirstMismatch')
         });
         imageTest.screenshot(elementSelector, function(err, result) {
             if (err) {
