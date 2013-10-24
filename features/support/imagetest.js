@@ -56,18 +56,18 @@ function captureSelector(filename, selector, callback) {
     // First, grab the whole page
     webdriver.screenshot(function(err, result) {
         if(err) {
-            return callback(err, result);
+            return callback("Error capturing screenshot: " + err.orgStatusMessage, result);
         }
 
         // Second, find out where the element is
         webdriver.getLocation(selector, function(err, where) {
             if(err) {
-                return callback(err, result);
+                return callback("Error getting location for selector: \"" + selector + "\" : " + err.orgStatusMessage, result);
             }
             // Third, find out how big the element is
             webdriver.getSize(selector, function(err, size) {
                 if(err) {
-                    return callback(err, result);
+                    return callback("Error getting size for selector: \"" + selector + "\" : " + err.orgStatusMessage, result);
                 }
 
                 // Fourth, save the fullsize image
@@ -77,9 +77,10 @@ function captureSelector(filename, selector, callback) {
                 fs.writeFile(tempFile, buffer, 'base64', function(err) {
 
                     if(err) {
-                        return callback(err, tempFile);
+                        return callback("Error saving screenshot to temp file: " + tempFile, tempFile);
                     }
 
+                  
                     //console.log('cropping: ', tempFile, size.width, size.height, where.x, where.y);
                     // Fifth, crop the image to the object's bounds and save it.
                     gm(tempFile)
@@ -90,7 +91,7 @@ function captureSelector(filename, selector, callback) {
                             }
                             else
                             {
-                                callback(new Error(code));
+                                callback(new Error("Error cropping image via gm: " + err));
                             }
                         });
                 });
