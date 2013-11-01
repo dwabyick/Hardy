@@ -9,10 +9,9 @@ var mockery = require('mockery');
 
 describe('CSS Imageutils Steps: ', function() {
 
-	var worldMock, imageTestMock, utilsMock, imageUtilsMock, assertMock, selectorsMock, cucumberMock, cucumberThens, cucumberGivens, callbackMock;
-
+	var worldMock, imageTestMock, selectorsMock, cucumberMock, cucumberThens, cucumberGivens, gmMock, assertMock;
+    var console = jasmine.getGlobal().console;
 	beforeEach(function() {
-
 		worldMock = {}; // Might not need this
 		eventsMock = {};
 		colorsMock = {};
@@ -28,43 +27,21 @@ describe('CSS Imageutils Steps: ', function() {
 			isAvailable: jasmine.createSpy('is GraphicsMagick available').andCallFake(function(callback) {
 				callback(false);
 			}),
-			cropImage: jasmine.createSpy('GM Utils cropImage')
-		};
+			cropImage: jasmine.createSpy('GM Utils cropImage'),
+            compareImages: jasmine.createSpy('GM Utils compareImages')
+
+        };
+
+        gmMock = {
+            crop: jasmine.createSpy('GM crop')
+        };
+
 		ghostImageUtilsMock = {
 			isAvailable: jasmine.createSpy('initialising imageTest'),
-			cropImage: jasmine.createSpy('Ghost Utils cropImage')
+			cropImage: jasmine.createSpy('Ghost Utils cropImage'),
+            compareImages: jasmine.createSpy('Ghost Utils compareImages')
 		};
-		utilsMock = {
-			isColor: jasmine.createSpy('initialising imageTest').andReturn(true),
-			toRgba: jasmine.createSpy('convert to RGBa').andCallFake(function(a) {
-				return a;
-			}),
-			normalizeString: jasmine.createSpy('normalizing CSS values').andCallFake(function(a) {
-				return a;
-			})
-		};
-		assertMock = {
-			equal: jasmine.createSpy('assert equal').andCallFake(function(a, b, message) {
-				if (a === b) {
-					return true;
-				} else {
-					throw new Error('Assertion error');
-				}
-			}),
-			ok: jasmine.createSpy('assert ok').andCallFake(function(a, message) {
-				if (a) {
-					return a;
-				} else {
-					throw new Error('Assertion error');
-				}
-			})
-		};
-		assertMock.equal.reset();
-		assertMock.ok.reset();
 
-		selectorsMock = function() {
-			return 'mock > selector';
-		};
 
 		cucumberThens = [];
 		cucumberGivens = [];
@@ -82,15 +59,14 @@ describe('CSS Imageutils Steps: ', function() {
 		};
 
 		mockery.registerAllowable(basedir + 'features/step_definitions/css.js');
-
+        mockery.registerMock('assert', './mocks/assert-mock');
 		mockery.registerMock('../support/world.js', worldMock);
 		mockery.registerMock('../support/gm-image-utils', gmImageUtilsMock);
 		mockery.registerMock('../support/ghost-image-utils', ghostImageUtilsMock);
 		mockery.registerMock('../support/imagetest', imageTestMock);
-		mockery.registerMock('../support/css-utils', utilsMock);
-		mockery.registerMock('assert', assertMock);
-		mockery.registerMock('../support/selectors.js', selectorsMock);
-
+        mockery.registerSubstitute('../support/css-utils', basedir + "tests/spec/mocks/utils-mock.js");
+        mockery.registerSubstitute('assert', './mocks/assert-mock.js');
+        mockery.registerSubstitute('../support/selectors.js', basedir + 'tests/spec/mocks/selectors-mock.js');
 		mockery.registerMock('events', eventsMock);
 		mockery.registerMock('./colors', colorsMock);
 		mockery.registerMock('../support/config.js', configMock);
@@ -121,10 +97,15 @@ describe('CSS Imageutils Steps: ', function() {
 			expect(gmImageUtilsMock.isAvailable).toHaveBeenCalledWith(jasmine.any(Function));
 		});
 
-		it('should use graphicsmagick', function() {
+		it('should use graphicsmagick.cropImage', function() {
 			cucumberThens['/^"([^"]*)" should look the same as before$/'].apply(cucumberMock);
 			expect(imageTestMock.init).toHaveBeenCalledWith(jasmine.objectContaining({cropImage: gmImageUtilsMock.cropImage}));
 		});
+
+        it('should call graphicsmagick.compareImages', function() {
+            cucumberThens['/^"([^"]*)" should look the same as before$/'].apply(cucumberMock);
+            expect(imageTestMock.init).toHaveBeenCalledWith(jasmine.objectContaining({compareImages: gmImageUtilsMock.compareImages}));
+        });
 	});
 
 	describe('imageutil loading when GraphicsMagick is not available', function() {
@@ -141,14 +122,14 @@ describe('CSS Imageutils Steps: ', function() {
 			expect(gmImageUtilsMock.isAvailable).toHaveBeenCalledWith(jasmine.any(Function));
 		});
 
-		it('should not use graphicsmagick', function() {
-			cucumberThens['/^"([^"]*)" should look the same as before$/'].apply(cucumberMock);
-			expect(imageTestMock.init).not.toHaveBeenCalledWith(jasmine.objectContaining({cropImage: gmImageUtilsMock.cropImage}));
-		});
-
-		it('should use ghostutils', function() {
+		it('should use ghostutils.cropImage', function() {
 			cucumberThens['/^"([^"]*)" should look the same as before$/'].apply(cucumberMock);
 			expect(imageTestMock.init).toHaveBeenCalledWith(jasmine.objectContaining({cropImage: ghostImageUtilsMock.cropImage}));
 		});
+
+        it('should use ghostutils.compareImages', function() {
+            cucumberThens['/^"([^"]*)" should look the same as before$/'].apply(cucumberMock);
+            expect(imageTestMock.init).toHaveBeenCalledWith(jasmine.objectContaining({compareImages: ghostImageUtilsMock.compareImages}));
+        });
 	});
 });

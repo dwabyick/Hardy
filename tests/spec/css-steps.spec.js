@@ -9,7 +9,7 @@ var mockery = require('mockery');
 
 describe('CSS Steps: ', function() {
 
-	var worldMock, imageTestMock, utilsMock, imageUtilsMock, assertMock, selectorsMock, cucumberMock, cucumberThens, cucumberGivens, callbackMock;
+	var worldMock, imageTestMock, imageUtilsMock, assertMock, cucumberMock, cucumberThens, cucumberGivens, callbackMock;
 
 	beforeEach(function() {
 
@@ -24,47 +24,16 @@ describe('CSS Steps: ', function() {
 			isAvailable: jasmine.createSpy('is GraphicsMagick available').andReturn(false)
 		};
 		ghostImageUtilsMock = {
-			isAvailable: jasmine.createSpy('initialising imageTest')
-		};
-		utilsMock = {
-			isColor: jasmine.createSpy('initialising imageTest').andReturn(true),
-			toRgba: jasmine.createSpy('convert to RGBa').andCallFake(function(a) {
-				return a;
-			}),
-			normalizeString: jasmine.createSpy('normalizing CSS values').andCallFake(function(a) {
-				return a;
-			})
-		};
-		assertMock = {
-			equal: jasmine.createSpy('assert equal').andCallFake(function(a, b, message) {
-				if (a === b) {
-					return true;
-				} else {
-					throw new Error('Assertion error');
-				}
-			}),
-			ok: jasmine.createSpy('assert ok').andCallFake(function(a, message) {
-				if (a) {
-					return a;
-				} else {
-					throw new Error('Assertion error');
-				}
-			})
-		};
-		assertMock.equal.reset();
-		assertMock.ok.reset();
-
-		selectorsMock = function() {
-			return 'mock > selector';
+			//isAvailable: jasmine.createSpy('initialising imageTest')
 		};
 
 		cucumberThens = [];
 		cucumberGivens = [];
 		cucumberMock = {
-			'Then': jasmine.createSpy('Then').andCallFake(function(matcher, callback) {
+			Then: jasmine.createSpy('Then').andCallFake(function(matcher, callback) {
 				cucumberThens[matcher] = callback;
 			}),
-			'Given': jasmine.createSpy('Given').andCallFake(function(matcher, callback) {
+			Given: jasmine.createSpy('Given').andCallFake(function(matcher, callback) {
 				cucumberGivens[matcher] = callback;
 			}),
 			setWindowSize: jasmine.createSpy('setting window size'),
@@ -83,15 +52,21 @@ describe('CSS Steps: ', function() {
 		mockery.registerMock('../support/gm-image-utils', gmImageUtilsMock);
 		mockery.registerMock('../support/ghost-image-utils', ghostImageUtilsMock);
 		mockery.registerMock('../support/imagetest', imageTestMock);
-		mockery.registerMock('../support/css-utils', utilsMock);
-		mockery.registerMock('assert', assertMock);
-		mockery.registerMock('../support/selectors.js', selectorsMock);
+		mockery.registerSubstitute('../support/css-utils', basedir + "tests/spec/mocks/utils-mock.js");
+		mockery.registerSubstitute('assert', './mocks/assert-mock.js');
+        mockery.registerSubstitute('../support/selectors.js', basedir + 'tests/spec/mocks/selectors-mock.js');
 		mockery.registerMock('../support/config.js', configMock);
 		mockery.registerMock('../support/logger', loggerMock);
 		mockery.registerMock('colorlog', colorlogMock);
 
 		mockery.enable();
-		CSSSteps = require(basedir + 'features/step_definitions/css.js');
+
+        assertMock = require('assert');
+        assertMock.equal.reset();
+        assertMock.ok.reset();
+
+
+        CSSSteps = require(basedir + 'features/step_definitions/css.js');
 
 		CSSSteps.apply(cucumberMock);
 

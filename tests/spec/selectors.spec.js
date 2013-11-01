@@ -9,7 +9,7 @@ var mockery = require('mockery');
 
 describe('Selectors map: ', function() {
 
-	var pathMock, processMock, selectorMap;
+	var pathMock, selectorMap;
 
 	console.log = jasmine.createSpy('Console log');
 
